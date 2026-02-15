@@ -7,13 +7,13 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
+// ✅ FIX: Allow GitHub Pages / any origin for demo + handle preflight
 app.use(cors({
-  origin: [
-    "https://jackson007823093.github.io/home-depot-hector/",
-    "http://localhost:5500",
-    "http://127.0.0.1:5500"
-  ]
+  origin: true,
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
+app.options("*", cors());
 
 app.get("/", (req, res) => {
   res.send("Hector backend is running ✅");
@@ -29,7 +29,7 @@ app.post("/api/hector", async (req, res) => {
 
     const systemPrompt =
       "You are Hector Nectar, a friendly hummingbird garden center assistant for a Home Depot-style garden guide. " +
-      "Answer clearly, briefly, and helpfully. Give practical tips for plants, sun/shade, watering, soil, mulch, and DIY garden projects.";
+      "Answer clearly, briefly, and helpfully. Give practical tips about plants, sun/shade, watering, soil, mulch, fertilizer, and DIY garden projects.";
 
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -50,14 +50,15 @@ app.post("/api/hector", async (req, res) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      return res.status(500).json({ reply: "AI error. " + errText.slice(0, 200) });
+      return res.status(500).json({ reply: "AI error: " + errText.slice(0, 200) });
     }
 
     const data = await response.json();
     const reply = data?.choices?.[0]?.message?.content?.trim() || "I’m not sure — try asking a different way.";
     return res.json({ reply });
+
   } catch (err) {
-    return res.status(500).json({ reply: "Server error. Make sure Groq key is set correctly." });
+    return res.status(500).json({ reply: "Server error. Check Render logs + GROQ_API_KEY." });
   }
 });
 
